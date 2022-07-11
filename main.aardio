@@ -1,0 +1,239 @@
+//RUNAS//电源计划管理
+
+//创建互斥体
+import process.mutex;
+var mutex = process.mutex("9971187F-7F13-4B19-9D81-5BAB80E66EF0") 
+if( mutex.conflict ){
+    import win.ui.atom;
+    var atom,hwndConflict = win.ui.atom.find("D3891FF7-3981-4F78-92AE-B15287457D40")
+    if( hwndConflict ) {
+    	win.setForeground(hwndConflict);
+    	win.show(hwndConflict,true);
+    }
+    return;
+} 
+
+
+import config;
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="电源计划管理器";right=391;bottom=87;border="thin";max=false)
+mainForm.add(
+changeTo={cls="plus";text="更改至";left=16;top=16;right=112;bottom=40;align="left";bgcolor=-5197169;iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=20}};iconText='\uF124';notify=1;textPadding={left=39};z=2};
+combobox={cls="combobox";left=136;top=16;right=384;bottom=40;edge=1;font=LOGFONT(h=-14);items={};mode="dropdown";z=3};
+log={cls="static";left=136;top=48;right=328;bottom=80;center=1;transparent=1;z=1};
+settings={cls="plus";text="设置";left=328;top=56;right=392;bottom=80;align="left";color=3947580;iconStyle={align="left";font=LOGFONT(h=-13;name='FontAwesome');padding={left=8}};iconText='\uF013';notify=1;textPadding={left=25};z=5};
+static={cls="static";text="当前电源计划为：";left=16;top=48;right=128;bottom=80;center=1;transparent=1;z=4}
+)
+/*}}*/
+
+import win.ui.atom 
+mainForm.atom("D3891FF7-3981-4F78-92AE-B15287457D40"); 
+
+
+mainForm.settings.skin({
+	color={
+		active=0xFF00FF00;
+		default=0xFF3C3C3C;
+		disabled=0xFF6D6D6D;
+		hover=0xFFFF0000
+	}
+})
+
+mainForm.changeTo.skin({
+	background={
+		default=0x668FB2B0;
+		disabled=0xFFCCCCCC;
+		hover=0xFF928BB3
+	};
+	color={
+		default=0xFF000000;
+		disabled=0xFF6D6D6D
+	}
+})
+
+if(!config.mainform.unlock){
+	config.mainform.unlock = true;
+}
+
+
+import win.util.tray;
+mainForm.tray = win.util.tray(mainForm)
+mainForm.tray.tip = "电源计划管理器" //设置鼠标提示
+
+import sys.runAsTask;
+
+mainForm.onMinimize = function(lParam){
+	mainForm.tray = win.util.tray(mainForm);
+	mainForm.show(false);
+	return true;
+}
+
+mainForm.onTrayMessage = {
+	[0x205/*_WM_RBUTTONUP*/  ] = function(wParam){ 
+		win.setForeground(mainForm.hwnd)
+		import win.ui.menu;
+		
+		mainForm.popmenu = win.ui.popmenu(mainForm);//创建弹出菜单
+		mainForm.popmenu.add('&设置',function(id){
+			var settingsWin = mainForm.loadForm("\dlg\settings.aardio");
+			settingsWin.doModal();
+		});
+		mainForm.popmenu.add('&打开',function(id){
+			//在下面输入菜单响应代码
+			mainForm.show(true)
+		});
+		mainForm.popmenu.add();//分隔线
+		mainForm.popmenu.add('&退出',function(id){ mainForm.close() })	    
+	    		
+	    mainForm.popmenu.popup()
+	};
+	[0x203/*_WM_LBUTTONDBLCLK*/] = function(wParam){ 
+		win.setForeground(mainForm.hwnd)
+		mainForm.show(true)
+	};
+}
+
+import win.reg;
+import config;
+
+
+import sys.power;
+var schemeGuidTable = {}; 
+
+
+if(config.mainform.startup){
+	if(config.mainform.powerUp){
+		if(sys.power.currentScheme() === config.mainform.startup){
+			if(config.mainform.pop){
+				win.util.tray(mainForm).pop(string.concat("当前模式为：",config.mainform.startupName),"当前模式")
+			}
+		}
+		else {
+			sys.power.command("/setactive", config.mainform.startup);
+			if(config.mainform.pop){
+				win.util.tray(mainForm).pop(string.concat("切换为",config.mainform.startupName),"切换电源模式",2)
+			}
+		}	
+	}
+}
+
+win.delay(300)
+
+var schemeList = sys.power.list(); 
+for i,v in table.eachIndex(schemeList){
+	if(v.active){
+		mainForm.log.text = v.name;
+		config.mainform.startupName = v.name
+		config.mainform.startup = v.guid;
+	}
+	schemeGuidTable[[v.name]] = v.guid;
+	mainForm.combobox.add(v.name);
+}
+
+config.mainform.save()
+
+mainForm.changeTo.oncommand = function(id,event){
+	config.mainform.unlock = false;
+	var guid = schemeGuidTable[[mainForm.combobox.selText]]; 
+	sys.power.command("/setactive", guid);
+	mainForm.log.text = "查询中..."
+	thread.invokeAndWait(
+		function(){
+			sleep(200)
+			import sys.power;
+			var schemeListNow = sys.power.list(); 
+			for i,v in table.eachIndex(schemeListNow){
+				if(v.active){
+					thread.set("Activation", v.name);
+					thread.set("Guid", v.guid)
+				}
+			}
+		} 
+	)
+
+	mainForm.log.text = thread.get("Activation");
+	config.mainform.startupName = thread.get("Activation");
+	config.mainform.startup = thread.get("Guid");
+	config.mainform.unlock = true;
+	config.mainform.save();
+	if(config.mainform.pop){
+		win.util.tray(mainForm).pop(string.concat("电源模式已切换到",config.mainform.startupName),"电源模式切换")
+	}
+	thread.set("watchPlan", config.mainform.watchPlan)
+	thread.set("startup", config.mainform.startup)
+	thread.set("startupName", config.mainform.startupName)
+	thread.set("pop", config.mainform.pop)
+	thread.set("unlock", config.mainform.unlock)
+	thread.set("loopTime", config.mainform.loopTime)
+}
+
+
+mainForm.settings.oncommand = function(id,event){
+	var settingsWin = mainForm.loadForm("\dlg\settings.aardio");
+	settingsWin.doModal();
+}
+
+startUp = sys.runAsTask("PowerPlanManager","控制电脑的电源管理计划","YrracOwl");
+
+
+var watchThreadFunc = function(mainForm){
+	sleep(10000)
+	import sys.power;
+	while(true){
+		var tunlock = thread.get("unlock");
+		var tloopTime = thread.get("loopTime"); 
+		var twatchPlan = thread.get("watchPlan");
+		sleep(tloopTime)//轮询时间
+		if(tunlock and twatchPlan){
+			sleep(1000)
+			var tstartup = thread.get("startup");
+			var tstartupName = thread.get("startupName");
+			var tpop = thread.get("pop");
+			
+			var currentScheme = sys.power.currentScheme();
+			if(currentScheme !== tstartup){
+				sys.power.command("/setactive", tstartup);
+				sleep(200)
+				if(tpop){
+					import win.util.tray;
+					win.util.tray(mainForm).pop(string.concat("阻止电源计划切换，保持为",tstartupName),"切换电源模式",2)
+				}
+			}
+		}
+	}
+} 
+
+
+
+var watchThrdHandle,watchThrdId = thread.create(watchThreadFunc);
+
+
+
+
+mainForm.onClose = function(hwnd,message,wParam,lParam){
+    //给线程发送退出消息
+	::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)
+}
+
+
+mainForm.wndproc = function(hwnd,message,wParam,lParam){
+	select( message ) { 
+		case 0xF/*_WM_PAINT*/{
+			thread.set("watchPlan", config.mainform.watchPlan)
+			thread.set("startup", config.mainform.startup)
+			thread.set("startupName", config.mainform.startupName)
+			thread.set("pop", config.mainform.pop)
+			thread.set("unlock", config.mainform.unlock)
+			thread.set("loopTime", config.mainform.loopTime)
+		}
+		else{
+			
+		}
+	}
+	//无返回值则继续调用默认回调函数
+}
+
+mainForm.show();
+return win.loopMessage();
