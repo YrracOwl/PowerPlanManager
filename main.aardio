@@ -1,4 +1,4 @@
-//RUNAS//电源计划管理
+//电源计划管理
 
 //创建互斥体
 import process.mutex;
@@ -30,8 +30,6 @@ static={cls="static";text="当前电源计划为：";left=16;top=48;right=128;bo
 
 import win.ui.atom 
 mainForm.atom("D3891FF7-3981-4F78-92AE-B15287457D40"); 
-
-var openFlag = true; 
 
 mainForm.settings.skin({
 	color={
@@ -87,7 +85,6 @@ mainForm.onTrayMessage = {
 		});
 		mainForm.popmenu.add();//分隔线
 		mainForm.popmenu.add('&退出',function(id){
-			openFlag = false;
 			mainForm.close();
 		});
 	    mainForm.popmenu.popup()
@@ -178,11 +175,11 @@ mainForm.settings.oncommand = function(id,event){
 	settingsWin.doModal();
 }
 
-//import sys.runAsTask;
-//startUp = sys.runAsTask("PowerPlanManager","控制电脑的电源管理计划","YrracOwl");
+import sys.runAsTask;
+startUp = sys.runAsTask("PowerPlanManagerv1","控制电脑的电源管理计划","YrracOwl");
 
-import sys.run;
-startUp = sys.run("PowerPlanManager_v1.0.0","控制电脑的电源管理计划","YrracOwl");
+//import sys.run;
+//startUp = sys.run("PowerPlanManager_v1.0.0","控制电脑的电源管理计划","YrracOwl");
 
 var watchThreadFunc = function(mainForm){
 	sleep(10000)
@@ -214,15 +211,19 @@ var watchThreadFunc = function(mainForm){
 var watchThrdHandle,watchThrdId = thread.create(watchThreadFunc);
 
 mainForm.onClose = function(hwnd,message,wParam,lParam){
-	if(config.mainform.noClose and openFlag){
+    	//给线程发送退出消息
+		::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)//此方法保证不会在重启时出现内存读写错误
+		//thread.waitClose(watchThrdHandle)
+		//raw.closehandle(watchThrdHandle);
+}
+
+mainForm.onMinimize = function(lParam){
+	if(config.mainform.noClose){
 		mainForm.tray = win.util.tray(mainForm);
 		mainForm.show(false);
 		return true;
 	}
-	else {			
-    	//给线程发送退出消息
-		::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)
-	}
+
 }
 
 mainForm.wndproc = function(hwnd,message,wParam,lParam){
@@ -242,5 +243,19 @@ mainForm.wndproc = function(hwnd,message,wParam,lParam){
 	//无返回值则继续调用默认回调函数
 }
 
-mainForm.show();
+import debug
+debug.debug()
+//若当前程序不以管理员权限运行，则弹出窗口提示用户，并关闭程序
+import process.admin;
+if(process.admin.isRunAs()){
+	mainForm.show();
+}
+else {
+	var askForAdmin = mainForm.loadForm("\dlg\askForAdmin.aardio");
+	win.util.tray(mainForm).pop(string.concat("请以管理员身份运行此程序！"),"权限错误",3)
+	if(askForAdmin.doModal(mainForm) === "关闭程序"){
+		mainForm.close();
+	}
+}
+
 return win.loopMessage();
