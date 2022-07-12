@@ -1,4 +1,4 @@
-//电源计划管理
+//RunAs//电源计划管理
 
 //创建互斥体
 import process.mutex;
