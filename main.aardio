@@ -220,7 +220,7 @@ mainForm.onClose = function(hwnd,message,wParam,lParam){
 
 mainForm.wndproc = function(hwnd,message,wParam,lParam){
 	select( message ) { 
-		case 0xF/*_WM_PAINT*/{
+		case 1/*_WM_CREATE*/{
 			thread.set("watchPlan", config.mainform.watchPlan)
 			thread.set("startup", config.mainform.startup)
 			thread.set("startupName", config.mainform.startupName)
