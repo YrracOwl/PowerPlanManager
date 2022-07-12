@@ -1,4 +1,4 @@
-//RunAs//电源计划管理
+//RUNAS//电源计划管理
 
 //创建互斥体
 import process.mutex;
@@ -31,6 +31,7 @@ static={cls="static";text="当前电源计划为：";left=16;top=48;right=128;bo
 import win.ui.atom 
 mainForm.atom("D3891FF7-3981-4F78-92AE-B15287457D40"); 
 
+var openFlag = true; 
 
 mainForm.settings.skin({
 	color={
@@ -62,12 +63,12 @@ import win.util.tray;
 mainForm.tray = win.util.tray(mainForm)
 mainForm.tray.tip = "电源计划管理器" //设置鼠标提示
 
-import sys.runAsTask;
-
 mainForm.onMinimize = function(lParam){
+/*
 	mainForm.tray = win.util.tray(mainForm);
 	mainForm.show(false);
 	return true;
+*/
 }
 
 mainForm.onTrayMessage = {
@@ -85,8 +86,10 @@ mainForm.onTrayMessage = {
 			mainForm.show(true)
 		});
 		mainForm.popmenu.add();//分隔线
-		mainForm.popmenu.add('&退出',function(id){ mainForm.close() })	    
-	    		
+		mainForm.popmenu.add('&退出',function(id){
+			openFlag = false;
+			mainForm.close();
+		});
 	    mainForm.popmenu.popup()
 	};
 	[0x203/*_WM_LBUTTONDBLCLK*/] = function(wParam){ 
@@ -175,8 +178,11 @@ mainForm.settings.oncommand = function(id,event){
 	settingsWin.doModal();
 }
 
-startUp = sys.runAsTask("PowerPlanManager","控制电脑的电源管理计划","YrracOwl");
+//import sys.runAsTask;
+//startUp = sys.runAsTask("PowerPlanManager","控制电脑的电源管理计划","YrracOwl");
 
+import sys.run;
+startUp = sys.run("PowerPlanManager_v1.0.0","控制电脑的电源管理计划","YrracOwl");
 
 var watchThreadFunc = function(mainForm){
 	sleep(10000)
@@ -205,18 +211,19 @@ var watchThreadFunc = function(mainForm){
 	}
 } 
 
-
-
 var watchThrdHandle,watchThrdId = thread.create(watchThreadFunc);
 
-
-
-
 mainForm.onClose = function(hwnd,message,wParam,lParam){
-    //给线程发送退出消息
-	::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)
+	if(config.mainform.noClose and openFlag){
+		mainForm.tray = win.util.tray(mainForm);
+		mainForm.show(false);
+		return true;
+	}
+	else {			
+    	//给线程发送退出消息
+		::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)
+	}
 }
-
 
 mainForm.wndproc = function(hwnd,message,wParam,lParam){
 	select( message ) { 
