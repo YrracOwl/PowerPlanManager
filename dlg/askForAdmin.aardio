@@ -1,0 +1,33 @@
+import fonts.fontAwesome;
+import win.ui;
+/*DSG{{*/
+var winform = win.form(text="请以管理员启动";right=383;bottom=279;border="thin";max=false;min=false)
+winform.add(
+picturebox={cls="picturebox";left=8;top=112;right=376;bottom=216;image=$"\res\runAsAdmin.bmp";z=2};
+plus={cls="plus";text="确定并退出";left=112;top=232;right=272;bottom=270;align="left";font=LOGFONT(h=-19);forecolor=-2104577;iconStyle={align="left";font=LOGFONT(h=-16;name='FontAwesome');padding={left=16}};iconText='\uF011';notify=1;textPadding={left=39};z=4};
+static={cls="static";text="请右键程序，点击“以管理员身份运行”！";left=8;top=40;right=376;bottom=64;align="center";center=1;font=LOGFONT(h=-20;underline=1);transparent=1;z=1};
+static2={cls="static";text="如下所示";left=8;top=72;right=376;bottom=96;align="center";center=1;font=LOGFONT(h=-20;underline=1);transparent=1;z=3}
+)
+/*}}*/
+
+winform.plus.skin({
+	foreground={
+		active=0xFFF78987;
+		default=0xFFFFE2DF;
+		disabled=0xFF8A4343;
+		focus=0xFFCF6565;
+		hover=0xFFFFBAB7
+	};
+	color={
+		default=0xFF000000;
+		disabled=0xFF6D6D6D
+	}
+})
+
+winform.plus.oncommand = function(id,event){
+	winform.endModal("关闭程序")
+}
+
+winform.show();
+win.loopMessage();
+return winform;
