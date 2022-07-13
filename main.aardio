@@ -54,20 +54,13 @@ mainForm.changeTo.skin({
 
 if(!config.mainform.unlock){
 	config.mainform.unlock = true;
+	config.mainform.loopTime = 3000;
 }
 
 
 import win.util.tray;
 mainForm.tray = win.util.tray(mainForm)
 mainForm.tray.tip = "电源计划管理器" //设置鼠标提示
-
-mainForm.onMinimize = function(lParam){
-/*
-	mainForm.tray = win.util.tray(mainForm);
-	mainForm.show(false);
-	return true;
-*/
-}
 
 mainForm.onTrayMessage = {
 	[0x205/*_WM_RBUTTONUP*/  ] = function(wParam){ 
@@ -102,18 +95,18 @@ import config;
 import sys.power;
 var schemeGuidTable = {}; 
 
-
+//开机启动相关
 if(config.mainform.startup){
 	if(config.mainform.powerUp){
 		if(sys.power.currentScheme() === config.mainform.startup){
 			if(config.mainform.pop){
-				win.util.tray(mainForm).pop(string.concat("当前模式为：",config.mainform.startupName),"当前模式")
+				mainForm.tray.pop(string.concat("当前模式为：",config.mainform.startupName),"当前模式")
 			}
 		}
 		else {
 			sys.power.command("/setactive", config.mainform.startup);
 			if(config.mainform.pop){
-				win.util.tray(mainForm).pop(string.concat("切换为",config.mainform.startupName),"切换电源模式",2)
+				mainForm.tray.pop(string.concat("切换为",config.mainform.startupName),"切换电源模式",2)
 			}
 		}	
 	}
@@ -121,12 +114,11 @@ if(config.mainform.startup){
 
 win.delay(300)
 
+//填充log.text与combobox内容
 var schemeList = sys.power.list(); 
 for i,v in table.eachIndex(schemeList){
 	if(v.active){
 		mainForm.log.text = v.name;
-		config.mainform.startupName = v.name
-		config.mainform.startup = v.guid;
 	}
 	schemeGuidTable[[v.name]] = v.guid;
 	mainForm.combobox.add(v.name);
@@ -134,8 +126,10 @@ for i,v in table.eachIndex(schemeList){
 
 config.mainform.save()
 
+//点击即针对config进行保存，同时修改线程变量
 mainForm.changeTo.oncommand = function(id,event){
 	config.mainform.unlock = false;
+	thread.set("unlock", config.mainform.unlock)
 	var guid = schemeGuidTable[[mainForm.combobox.selText]]; 
 	sys.power.command("/setactive", guid);
 	mainForm.log.text = "查询中..."
@@ -159,7 +153,7 @@ mainForm.changeTo.oncommand = function(id,event){
 	config.mainform.unlock = true;
 	config.mainform.save();
 	if(config.mainform.pop){
-		win.util.tray(mainForm).pop(string.concat("电源模式已切换到",config.mainform.startupName),"电源模式切换")
+		mainForm.tray.pop(string.concat("电源模式已切换到",config.mainform.startupName),"电源模式切换")
 	}
 	thread.set("watchPlan", config.mainform.watchPlan)
 	thread.set("startup", config.mainform.startup)
@@ -168,6 +162,25 @@ mainForm.changeTo.oncommand = function(id,event){
 	thread.set("unlock", config.mainform.unlock)
 	thread.set("loopTime", config.mainform.loopTime)
 }
+
+//窗口显示或者隐藏前，更新log.text内容
+mainForm.beforeShowWindow = function(shown,status){ 
+	var currentSchemeUI = sys.power.currentScheme();
+	var currentSchemeName = table.find(schemeGuidTable,currentSchemeUI);
+	mainForm.log.text = currentSchemeName;
+}
+
+thread.invoke( 
+	function(mainForm,schemeGuidTable){
+		import sys.power;
+		while(true){
+			var currentSchemeUI = sys.power.currentScheme();
+			var currentSchemeName = table.find(schemeGuidTable,currentSchemeUI);
+			mainForm.log.text = currentSchemeName;
+			sleep(1000)
+		}
+	},mainForm,schemeGuidTable
+)
 
 
 mainForm.settings.oncommand = function(id,event){
@@ -181,16 +194,17 @@ startUp = sys.runAsTask("PowerPlanManagerv1","控制电脑的电源管理计划"
 //import sys.run;
 //startUp = sys.run("PowerPlanManager_v1.0.0","控制电脑的电源管理计划","YrracOwl");
 
+
 var watchThreadFunc = function(mainForm){
-	sleep(10000)
+	sleep(2000)
 	import sys.power;
+	import win.util.tray;
 	while(true){
 		var tunlock = thread.get("unlock");
 		var tloopTime = thread.get("loopTime"); 
 		var twatchPlan = thread.get("watchPlan");
 		sleep(tloopTime)//轮询时间
 		if(tunlock and twatchPlan){
-			sleep(1000)
 			var tstartup = thread.get("startup");
 			var tstartupName = thread.get("startupName");
 			var tpop = thread.get("pop");
@@ -199,22 +213,39 @@ var watchThreadFunc = function(mainForm){
 			if(currentScheme !== tstartup){
 				sys.power.command("/setactive", tstartup);
 				sleep(200)
+				mainForm.log.text = tstartupName;
 				if(tpop){
-					import win.util.tray;
-					win.util.tray(mainForm).pop(string.concat("阻止电源计划切换，保持为",tstartupName),"切换电源模式",2)
+					win.util.tray(winform).pop(string.concat("已将电源计划恢复为",tstartupName),"恢复默认",2)
 				}
 			}
 		}
 	}
 } 
 
-var watchThrdHandle,watchThrdId = thread.create(watchThreadFunc);
+var watchThrdHandle,watchThrdId = thread.create(watchThreadFunc,mainForm);
+
+var watchPowerPlanFunc = function(mainForm,schemeGuidTable){
+	import sys.power;
+	while(true){
+		var currentSchemeUI = sys.power.currentScheme();
+		var currentSchemeName = table.find(schemeGuidTable,currentSchemeUI);
+		mainForm.log.text = currentSchemeName;
+		sleep(1000)
+	}
+}
+
+var watchPowerPlanHandle,watchPowerPlanId = thread.create(watchPowerPlanFunc,mainForm,schemeGuidTable); 
+
 
 mainForm.onClose = function(hwnd,message,wParam,lParam){
     	//给线程发送退出消息
+    	
 		::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)//此方法保证不会在重启时出现内存读写错误
+		::PostThreadMessage(watchPowerPlanId,0x12/*_WM_QUIT*/,0,0)
 		//thread.waitClose(watchThrdHandle)
 		//raw.closehandle(watchThrdHandle);
+		config.saveAll()
+		mainForm.tray.delete();
 }
 
 mainForm.onMinimize = function(lParam){
@@ -228,7 +259,7 @@ mainForm.onMinimize = function(lParam){
 
 mainForm.wndproc = function(hwnd,message,wParam,lParam){
 	select( message ) { 
-		case 1/*_WM_CREATE*/{
+		case 0x18/*_WM_SHOWWINDOW*/{
 			thread.set("watchPlan", config.mainform.watchPlan)
 			thread.set("startup", config.mainform.startup)
 			thread.set("startupName", config.mainform.startupName)
@@ -236,6 +267,16 @@ mainForm.wndproc = function(hwnd,message,wParam,lParam){
 			thread.set("unlock", config.mainform.unlock)
 			thread.set("loopTime", config.mainform.loopTime)
 		}
+/**
+		case 0x201/*_WM_LBUTTONDOWN*/{
+			var schemeListLBD = sys.power.list(); 
+			for i,v in table.eachIndex(schemeListLBD){
+				if(v.active){
+					mainForm.log.text = v.name;
+				}
+			}
+		}
+**/
 		else{
 			
 		}
@@ -243,8 +284,10 @@ mainForm.wndproc = function(hwnd,message,wParam,lParam){
 	//无返回值则继续调用默认回调函数
 }
 
+/*
 import debug
 debug.debug()
+*/
 //若当前程序不以管理员权限运行，则弹出窗口提示用户，并关闭程序
 import process.admin;
 if(process.admin.isRunAs()){
@@ -252,7 +295,7 @@ if(process.admin.isRunAs()){
 }
 else {
 	var askForAdmin = mainForm.loadForm("\dlg\askForAdmin.aardio");
-	win.util.tray(mainForm).pop(string.concat("请以管理员身份运行此程序！"),"权限错误",3)
+	mainForm.tray.pop(string.concat("请以管理员身份运行此程序！"),"权限错误",3)
 	if(askForAdmin.doModal(mainForm) === "关闭程序"){
 		mainForm.close();
 	}

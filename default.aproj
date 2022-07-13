@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<project ver="10" name="电源计划管理器" libEmbed="true" icon="res\battery-level.ico" ui="win" output="电源计划管理器.exe" CompanyName="YrracOwl" FileDescription="电源计划管理器" LegalCopyright="Copyright (C) YrracOwl 2022" ProductName="电源计划管理器" InternalName="电源计划管理器" FileVersion="1.0.0.11" ProductVersion="1.0.0.11" publishDir="/dist/" dstrip="false" local="false" ignored="false">
+<project ver="10" name="电源计划管理器" libEmbed="true" icon="res\battery-level.ico" ui="win" output="电源计划管理器.exe" CompanyName="YrracOwl" FileDescription="电源计划管理器" LegalCopyright="Copyright (C) YrracOwl 2022" ProductName="电源计划管理器" InternalName="电源计划管理器" FileVersion="1.0.0.17" ProductVersion="1.0.0.17" publishDir="/dist/" dstrip="false" local="false" ignored="false">
 	<file name="main.aardio" path="main.aardio" comment="main.aardio"/>
 	<folder name="资源文件" path="res" embed="true" local="false" ignored="false">
 		<file name="battery-level.ico" path="res\battery-level.ico" comment="res\battery-level.ico"/>

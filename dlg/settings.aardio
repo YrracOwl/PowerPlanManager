@@ -1,16 +1,12 @@
 import win.ui;
 /*DSG{{*/
-var winform = win.form(text="设置";right=255;bottom=207;border="thin")
+var winform = win.form(text="设置";right=255;bottom=183;border="thin")
 winform.add(
 checkPowerPlan={cls="checkbox";text="监控并阻止对当前计划的修改";left=24;top=112;right=248;bottom=128;z=4};
-loopTime1={cls="radiobutton";text="10秒";left=48;top=144;right=96;bottom=160;checked=1;z=5};
-loopTime2={cls="radiobutton";text="1分钟";left=112;top=144;right=168;bottom=160;z=6};
-loopTime3={cls="radiobutton";text="1小时";left=176;top=144;right=240;bottom=160;z=7};
-noClose={cls="checkbox";text="最小化到托盘";left=24;top=80;right=248;bottom=96;z=9};
+noClose={cls="checkbox";text="最小化到托盘";left=24;top=80;right=248;bottom=96;z=5};
 notify={cls="checkbox";text="电源计划更改时通知我";left=24;top=48;right=248;bottom=64;z=2};
-openSysSetting={cls="button";text="打开系统的电源计划设置";left=24;top=168;right=232;bottom=192;z=3};
-powerUp={cls="checkbox";text="开机启动";left=24;top=16;right=248;bottom=32;z=1};
-static={cls="static";text="轮询间隔：";left=48;top=128;right=120;bottom=144;transparent=1;z=8}
+openSysSetting={cls="button";text="打开系统的电源计划设置";left=24;top=144;right=232;bottom=168;z=3};
+powerUp={cls="checkbox";text="开机启动";left=24;top=16;right=248;bottom=32;z=1}
 )
 /*}}*/
 
@@ -31,18 +27,7 @@ if(..config.mainform.noClose){
 }
 
 if(!..config.mainform.loopTime){
-	..config.mainform.loopTime = 1000*10;
-	winform.loopTime1.checked = true
-}
-
-if(..config.mainform.loopTime === 1000*10){
-	winform.loopTime1.checked = true
-}
-elseif(..config.mainform.loopTime === 1000*60){
-	winform.loopTime2.checked = true
-}
-elseif(..config.mainform.loopTime === 1000*60*60){
-	winform.loopTime3.checked = true
+	..config.mainform.loopTime = 3000;
 }
 
 
@@ -69,6 +54,7 @@ winform.powerUp.oncommand = function(id,event){
 winform.notify.oncommand = function(id,event){
 	..config.mainform.pop = winform.notify.checked;
 	..config.mainform.save();
+	thread.set("pop", config.mainform.pop)
 }
 
 winform.openSysSetting.oncommand = function(id,event){
@@ -78,18 +64,7 @@ winform.openSysSetting.oncommand = function(id,event){
 winform.checkPowerPlan.oncommand = function(id,event){
 	..config.mainform.watchPlan = winform.checkPowerPlan.checked;
 	..config.mainform.save();
-}
-
-winform.loopTime1.oncommand = function(id,event){
-	..config.mainform.loopTime = 1000*10;
-}
-
-winform.loopTime2.oncommand = function(id,event){
-	..config.mainform.loopTime = 1000*60;
-}
-
-winform.loopTime3.oncommand = function(id,event){
-	..config.mainform.loopTime = 1000*60*60;
+	thread.set("watchPlan", ..config.mainform.watchPlan)
 }
 
 winform.noClose.oncommand = function(id,event){
