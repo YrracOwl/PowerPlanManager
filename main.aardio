@@ -239,13 +239,13 @@ var watchPowerPlanHandle,watchPowerPlanId = thread.create(watchPowerPlanFunc,mai
 
 mainForm.onClose = function(hwnd,message,wParam,lParam){
     	//给线程发送退出消息
-    	
-		::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)//此方法保证不会在重启时出现内存读写错误
-		::PostThreadMessage(watchPowerPlanId,0x12/*_WM_QUIT*/,0,0)
+    	//此方法保证不会在重启时出现内存读写错误
+		//::PostThreadMessage(watchThrdId,0x12/*_WM_QUIT*/,0,0)
+		//::PostThreadMessage(watchPowerPlanId,0x12/*_WM_QUIT*/,0,0)
 		//thread.waitClose(watchThrdHandle)
 		//raw.closehandle(watchThrdHandle);
-		config.saveAll()
-		mainForm.tray.delete();
+		config.mainform.save();
+		//mainForm.tray.delete();
 }
 
 mainForm.onMinimize = function(lParam){
@@ -267,16 +267,6 @@ mainForm.wndproc = function(hwnd,message,wParam,lParam){
 			thread.set("unlock", config.mainform.unlock)
 			thread.set("loopTime", config.mainform.loopTime)
 		}
-/**
-		case 0x201/*_WM_LBUTTONDOWN*/{
-			var schemeListLBD = sys.power.list(); 
-			for i,v in table.eachIndex(schemeListLBD){
-				if(v.active){
-					mainForm.log.text = v.name;
-				}
-			}
-		}
-**/
 		else{
 			
 		}
@@ -284,10 +274,7 @@ mainForm.wndproc = function(hwnd,message,wParam,lParam){
 	//无返回值则继续调用默认回调函数
 }
 
-/*
-import debug
-debug.debug()
-*/
+
 //若当前程序不以管理员权限运行，则弹出窗口提示用户，并关闭程序
 import process.admin;
 if(process.admin.isRunAs()){
