@@ -7,8 +7,10 @@ if( mutex.conflict ){
     import win.ui.atom;
     var atom,hwndConflict = win.ui.atom.find("D3891FF7-3981-4F78-92AE-B15287457D40")
     if( hwndConflict ) {
-    	win.setForeground(hwndConflict);
     	win.show(hwndConflict,true);
+    	win.setForeground(hwndConflict);
+    	import win.dlg.message;
+    	win.msgbox("程序已启动，请检查任务栏托盘按钮并双击！","程序已启动")
     }
     return;
 } 
@@ -164,11 +166,13 @@ mainForm.changeTo.oncommand = function(id,event){
 }
 
 //窗口显示或者隐藏前，更新log.text内容
+/*
 mainForm.beforeShowWindow = function(shown,status){ 
 	var currentSchemeUI = sys.power.currentScheme();
 	var currentSchemeName = table.find(schemeGuidTable,currentSchemeUI);
 	mainForm.log.text = currentSchemeName;
 }
+*/
 
 thread.invoke( 
 	function(mainForm,schemeGuidTable){
@@ -282,7 +286,7 @@ if(process.admin.isRunAs()){
 }
 else {
 	var askForAdmin = mainForm.loadForm("\dlg\askForAdmin.aardio");
-	mainForm.tray.pop(string.concat("请以管理员身份运行此程序！"),"权限错误",3)
+	win.util.tray(winform).pop(string.concat("请以管理员身份运行此程序！"),"权限错误",3)
 	if(askForAdmin.doModal(mainForm) === "关闭程序"){
 		mainForm.close();
 	}
