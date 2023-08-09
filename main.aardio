@@ -201,6 +201,7 @@ startUp = sys.runAsTask("PowerPlanManagerv1","控制电脑的电源管理计划"
 
 var watchThreadFunc = function(mainForm){
 	sleep(2000)
+	mainForm.hitMin();
 	import sys.power;
 	import win.util.tray;
 	while(true){
